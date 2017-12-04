@@ -75,4 +75,4 @@ The root has three children: `ideal b_2`, `ideal b_1`, `ideal b_0`. These are th
 
 Some points on these lines can be hit however. These are then described by their children. For instance, the line `b_2=0` contains two points that which belong to the image of `f`. These are: `b_2=b_0=0` and `b_2=b_1=0`. 
 
-Similarly, each of the other two lines contain two points in the image of `f`. Note that there us some redundancy of information, this is deliberate so that the output can be printed in the form of a tree rather than a graph.
+Similarly, each of the other two lines contain two points in the image of `f`. Note that there is some redundancy of information; this is deliberate so that the output can be printed in the form of a tree rather than a graph.
