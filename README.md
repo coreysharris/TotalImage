@@ -27,7 +27,7 @@ The installation will go through our list of examples to make sure everything is
 The input is thought of as a rational map from a projective variety X to projective space. The variety X is given by an ideal `I_X` in a ring `R=QQ[x_0,...,x_n]`. The rational map is given by a sequence of polynomials `L={f_0,...,f_m}`. The input is of the form:
 
 ```
-totalImage(I_X,L);
+totalImage(L,I_X);
 ```
 
 If the ideal I_X is ommitted, then X is assumed to be the entire space (that is I_X = (0)):
