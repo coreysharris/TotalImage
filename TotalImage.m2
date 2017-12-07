@@ -232,7 +232,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
     );
 )
 
-isClosed = method(Options => {Verbose => false})
+isClosed = method(Options => {Verbose => false,Tries=>10})
 isClosed List := opts -> L -> (
     isClosed(L,sub(ideal 0,ring L#0),opts)
 )
