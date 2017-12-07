@@ -34,7 +34,7 @@ ReverseDictionary = value Core#"private dictionary"#"ReverseDictionary"
 -------------------------------------------
 
 --EXPORTED
-partialImage = method(Options => {Verbose => false, Verify => false, pd => true})
+partialImage = method(Options => {Verbose => false, Verify => true, pd => true})
 partialImage List := opts -> (L) -> (
     partialImage(L,sub(ideal 0,ring L#0),opts)
  )
