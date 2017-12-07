@@ -20,7 +20,8 @@ export {
     -- option symbols
     "Clean",
     "Affine",
-    "pd"
+    "pd",
+    "Tries"
 }
 
 hasAttribute = value Core#"private dictionary"#"hasAttribute"
@@ -34,7 +35,7 @@ ReverseDictionary = value Core#"private dictionary"#"ReverseDictionary"
 -------------------------------------------
 
 --EXPORTED
-partialImage = method(Options => {Verbose => false, Verify => true, pd => true})
+partialImage = method(Options => {Verbose => false, Verify => true, pd => true, Tries => 5})
 partialImage List := opts -> (L) -> (
     partialImage(L,sub(ideal 0,ring L#0),opts)
  )
@@ -108,7 +109,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
            return (fRestricted,restrict,restrictedX,restrictedImage)
         );
 
-        TRIES := 4;
+        TRIES := opts.Tries;
         -- look for very simple linear spaces
         (fRestricted,r,restrictedX,restrictedImage) := monomialMap();
         for i from 1 to TRIES do (
@@ -240,19 +241,17 @@ isClosed(List,Ideal) := opts -> (L,X) -> (
     R := ring X;
     T := ring imageX;
     f := map(R,T,L);
-    -- print(imageE);
     dimageE := dim imageE;
-    -- print(2);
     pullback := f(imageE)+X;
     imageOfPullback := preimage_f( pullback );
     dimageOfPullback := dim imageOfPullback;
-    -- print(dimageOfPullback);
     if ( dimageE != dimageOfPullback ) then (return false);
+    if opts.Verbose then print("Decomposing image of exceptional divisor");
     pdE := minimalPrimes(imageE);
     for p in pdE do ( 
         -- print(p);
         -- print(f(p)+X);
-        if not isClosed(L,f(p)+X,opts) then return false ;
+        if not isClosed(L,saturate(f(p)+X,ideal L),opts) then return false ;
     );
     return true
 )
