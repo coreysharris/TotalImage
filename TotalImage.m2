@@ -55,6 +55,8 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
     if opts.Verbose then << "(domain has dim " << dim variety X << ")" <<  endl;
     imageX := preimage_f X;
     if opts.Verbose then << "computed image" << endl;
+    if opts.Verbose then << imageX << endl;
+    if opts.Verbose then << "(image has dim " << dim variety imageX << ")" <<  endl;
     baseLocus := ideal L;
     if dim baseLocus < 1 then (
         if opts.pd then (
@@ -64,6 +66,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         );
     );
     dimageX := dim imageX;
+    if opts.Verbose then << "(image has dim " << dim variety imageX << ")" <<  endl;
     fiberDim := dim X - dimageX;
     shrinkX := () -> (
         binomialMap := () -> (
@@ -188,7 +191,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         R = ring X;
         f = map(R,targetPPm,L / (i -> hyperIncl(i)));
     );
-    if opts.Verbose then << "computing preimage of X" << endl;
+    -- if opts.Verbose then << "computing preimage of X" << endl;
     if opts.Verbose then << "getting ready to compute blowup" << endl;
     Bl := blowup(baseLocus); -- blowup of PPk (hyperplane);
     BlRing := quotient Bl;
@@ -222,12 +225,14 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
     );
     ImageXRing := quotient imageX;
     if opts.pd then (
-        if opts.Verbose then << "computing components of image of E" << endl << endl;
+        if opts.Verbose then << "computing components of image of E" << endl;
         -- print("pd true");
         pdE := minimalPrimes imageE;
+        if opts.Verbose then << netList(pdE) << endl << endl;
         return (imageX, pdE)
     ) else (
         -- print("pd false");
+        if opts.Verbose then << endl;
         return (imageX, imageE)
     );
 )
@@ -248,6 +253,7 @@ isClosed(List,Ideal) := opts -> (L,X) -> (
     if ( dimageE != dimageOfPullback ) then (return false);
     if opts.Verbose then print("Decomposing image of exceptional divisor");
     pdE := minimalPrimes(imageE);
+    if opts.Verbose then << netList(pdE) << endl << endl;
     for p in pdE do ( 
         -- print(p);
         -- print(f(p)+X);
@@ -256,7 +262,7 @@ isClosed(List,Ideal) := opts -> (L,X) -> (
     return true
 )
 
-treeBuilder = method(Options => {Verbose => false,Verify=>false})
+treeBuilder = method(Options => {Verbose => false,Verify=>false,Tries=>10})
 treeBuilder List := opts -> L -> (
     treeBuilder(L,sub(ideal 0,ring L#0),opts)
 )
@@ -338,7 +344,7 @@ outputTree = (N,E) -> (
 )
 
 --EXPORTED
-totalImage = method(Options => {Verbose => false, Clean => true, Verify => true, Affine => false})
+totalImage = method(Options => {Verbose => false, Clean => true, Verify => true, Affine => false,Tries => 10})
 totalImage List := opts -> L -> (
     totalImage(L,sub(ideal 0,ring L#0),opts)
 )
@@ -349,7 +355,7 @@ totalImage (List,Ideal) := opts -> (L,X) -> (
         L = {ourR_0^(maxDegree+1)} | for f in L list homogenizeD(sub(f,ourR),ourR_0,maxDegree+1);
         X = sub(X,ourR);
     );
-    tree:=treeBuilder(L,X,Verbose=>opts.Verbose,Verify=>opts.Verify);
+    tree:=treeBuilder(L,X,Verbose=>opts.Verbose,Verify=>opts.Verify,Tries=>opts.Tries);
     if opts.Clean then (
         tree=reindexTree(removeDuplicates(tree));
         tree=reindexTree(cleanTree(tree));
