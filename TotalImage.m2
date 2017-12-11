@@ -332,7 +332,7 @@ outputTree = (N,E) -> (
                 indentation = " - "|indentation | ((lvl-1)* "|    ") | "|===="
             );
         ) else (
-            indentation = "   ";
+            indentation = "   "|indentation;
         );
         print(indentation|toString N#node);
         for c in childList do printChildren(c,C#c,lvl+1);
