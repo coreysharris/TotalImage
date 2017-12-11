@@ -455,6 +455,7 @@ subTree = (N,E,i) -> (
   for j when (j < #descendants) do (
     descendants = descendants | children(descendants#j);
     );
+  descendants=sort(descendants);
 
   E' := for e in E list ( if member(e#0,descendants) then e else continue );
 
