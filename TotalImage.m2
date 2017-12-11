@@ -325,10 +325,14 @@ outputTree = (N,E) -> (
         -- indentation := "";
         if lvl > 0 then (
             if lvl % 2 == 0 then (
-                indentation = indentation | ((lvl-1)* "|    ") | "|==(+)=="
+                -- indentation = indentation | ((lvl-1)* "|    ") | "|==(+)=="
+                indentation = " + "|indentation | ((lvl-1)* "|    ") | "|===="
             ) else (
-                indentation = indentation | ((lvl-1)* "|    ") | "|==(-)=="
+                -- indentation = indentation | ((lvl-1)* "|    ") | "|==(-)=="
+                indentation = " - "|indentation | ((lvl-1)* "|    ") | "|===="
             );
+        ) else (
+            indentation = "   ";
         );
         print(indentation|toString N#node);
         for c in childList do printChildren(c,C#c,lvl+1);
