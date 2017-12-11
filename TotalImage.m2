@@ -16,9 +16,12 @@ export {
     "partialImage",
     "outputTree",
     "totalImage",
+    "isClosed",
     -- option symbols
     "Clean",
-    "Affine"
+    "Affine",
+    "pd",
+    "Tries"
 }
 
 hasAttribute = value Core#"private dictionary"#"hasAttribute"
@@ -32,7 +35,7 @@ ReverseDictionary = value Core#"private dictionary"#"ReverseDictionary"
 -------------------------------------------
 
 --EXPORTED
-partialImage = method(Options => {Verbose => false, Verify => false})
+partialImage = method(Options => {Verbose => false, Verify => true, pd => true, Tries => 5})
 partialImage List := opts -> (L) -> (
     partialImage(L,sub(ideal 0,ring L#0),opts)
  )
@@ -52,9 +55,18 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
     if opts.Verbose then << "(domain has dim " << dim variety X << ")" <<  endl;
     imageX := preimage_f X;
     if opts.Verbose then << "computed image" << endl;
+    if opts.Verbose then << imageX << endl;
+    if opts.Verbose then << "(image has dim " << dim variety imageX << ")" <<  endl;
     baseLocus := ideal L;
-    if dim baseLocus < 1 then return (imageX,{});
+    if dim baseLocus < 1 then (
+        if opts.pd then (
+            return (imageX,{});
+        ) else (
+            return (imageX,sub(ideal(1),ring imageX));
+        );
+    );
     dimageX := dim imageX;
+    if opts.Verbose then << "(image has dim " << dim variety imageX << ")" <<  endl;
     fiberDim := dim X - dimageX;
     shrinkX := () -> (
         binomialMap := () -> (
@@ -100,7 +112,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
            return (fRestricted,restrict,restrictedX,restrictedImage)
         );
 
-        TRIES := 4;
+        TRIES := opts.Tries;
         -- look for very simple linear spaces
         (fRestricted,r,restrictedX,restrictedImage) := monomialMap();
         for i from 1 to TRIES do (
@@ -154,18 +166,32 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         (f,r,X) = shrinkX();
         R = ring X;
         baseLocus = r(ideal L);
-        if dim baseLocus < 1 then return (imageX,{});
+        -- if dim baseLocus < 1 then return (imageX,{});
+    if dim baseLocus < 1 then (
+        if opts.pd then (
+            return (imageX,{});
+        ) else (
+            return (imageX,sub(ideal(1),ring imageX));
+        );
+    );
     ) else (
         hyperIncl := hyperplaneSection(X,fiberDim);
         baseLocus = hyperIncl(ideal L);
-        if dim baseLocus < 1 then return (imageX,{});
+        -- if dim baseLocus < 1 then return (imageX,{});
+    if dim baseLocus < 1 then (
+        if opts.pd then (
+            return (imageX,{});
+        ) else (
+            return (imageX,sub(ideal(1),ring imageX));
+        );
+    );
         -- now we move to the linear subspace
         X = hyperIncl(X);
         if opts.Verbose then << "moved to linear subspace" << endl;
         R = ring X;
         f = map(R,targetPPm,L / (i -> hyperIncl(i)));
     );
-    if opts.Verbose then << "computing preimage of X" << endl;
+    -- if opts.Verbose then << "computing preimage of X" << endl;
     if opts.Verbose then << "getting ready to compute blowup" << endl;
     Bl := blowup(baseLocus); -- blowup of PPk (hyperplane);
     BlRing := quotient Bl;
@@ -191,15 +217,52 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
     imageE := sub(eliminate(E,gens1),targetPPm);
     if opts.Verbose then << "computed image of E" << endl;
     if dim imageE < 1 then (
-        return (imageX, {})
+        if opts.pd then (
+            return (imageX, {})
+        ) else (
+            return (imageX, sub(ideal(1),ring imageX))
+        );
     );
     ImageXRing := quotient imageX;
-    if opts.Verbose then << "computing components of image of E" << endl << endl;
-    pdE := minimalPrimes imageE;
-    return (imageX, pdE)
+    if opts.pd then (
+        if opts.Verbose then << "computing components of image of E" << endl;
+        -- print("pd true");
+        pdE := minimalPrimes imageE;
+        if opts.Verbose then << netList(pdE) << endl << endl;
+        return (imageX, pdE)
+    ) else (
+        -- print("pd false");
+        if opts.Verbose then << endl;
+        return (imageX, imageE)
+    );
 )
 
-treeBuilder = method(Options => {Verbose => false,Verify=>false})
+isClosed = method(Options => {Verbose => false,Tries=>10})
+isClosed List := opts -> L -> (
+    isClosed(L,sub(ideal 0,ring L#0),opts)
+)
+isClosed(List,Ideal) := opts -> (L,X) -> (
+    (imageX, imageE) := partialImage(L,X,pd=>false,Verbose=>opts.Verbose);
+    R := ring X;
+    T := ring imageX;
+    f := map(R,T,L);
+    dimageE := dim imageE;
+    pullback := f(imageE)+X;
+    imageOfPullback := preimage_f( pullback );
+    dimageOfPullback := dim imageOfPullback;
+    if ( dimageE != dimageOfPullback ) then (return false);
+    if opts.Verbose then print("Decomposing image of exceptional divisor");
+    pdE := minimalPrimes(imageE);
+    if opts.Verbose then << netList(pdE) << endl << endl;
+    for p in pdE do ( 
+        -- print(p);
+        -- print(f(p)+X);
+        if not isClosed(L,saturate(f(p)+X,ideal L),opts) then return false ;
+    );
+    return true
+)
+
+treeBuilder = method(Options => {Verbose => false,Verify=>false,Tries=>10})
 treeBuilder List := opts -> L -> (
     treeBuilder(L,sub(ideal 0,ring L#0),opts)
 )
@@ -281,7 +344,7 @@ outputTree = (N,E) -> (
 )
 
 --EXPORTED
-totalImage = method(Options => {Verbose => false, Clean => true, Verify => true, Affine => false})
+totalImage = method(Options => {Verbose => false, Clean => true, Verify => true, Affine => false,Tries => 10})
 totalImage List := opts -> L -> (
     totalImage(L,sub(ideal 0,ring L#0),opts)
 )
@@ -292,7 +355,7 @@ totalImage (List,Ideal) := opts -> (L,X) -> (
         L = {ourR_0^(maxDegree+1)} | for f in L list homogenizeD(sub(f,ourR),ourR_0,maxDegree+1);
         X = sub(X,ourR);
     );
-    tree:=treeBuilder(L,X,Verbose=>opts.Verbose,Verify=>opts.Verify);
+    tree:=treeBuilder(L,X,Verbose=>opts.Verbose,Verify=>opts.Verify,Tries=>opts.Tries);
     if opts.Clean then (
         tree=reindexTree(removeDuplicates(tree));
         tree=reindexTree(cleanTree(tree));
@@ -799,6 +862,8 @@ PP2 = QQ[x,y,z];
 L = {x,y-z}
 -- X = ideal "xy"
 X = ideal "y2z-x3-2x2z-z3"
+assert(isClosed(L))
+assert(isClosed(L,X))
 (N,E)=totalImage(L,X)
 assert(sort(N/dim) == {2})
 
@@ -819,11 +884,12 @@ assert(sort(N/dim) == {1,2})
 
 TEST ///
 -- Cremona
--- restart
--- loadPackage "TotalImage"
+restart
+loadPackage "TotalImage"
 PP2 = QQ[x,y,z]
 L = {y*z,x*z,x*y}
 (N,E)=totalImage(L)
+assert(not isClosed(L))
 assert(sort(N/dim) == {1,1,1,1,1,1,2,2,2,3})
 
 -- (2) ideal()
@@ -853,6 +919,7 @@ TEST ///
 PP2 = QQ[x,y,z]
 L = {x^3,x*y*z,y^2*z}
 (N,E)=totalImage(L)
+assert(not isClosed(L))
 assert(sort(N/dim) == {1, 1, 1, 1, 1, 1, 2, 2, 2, 3})
 -- above is correct / below is to see a bad test
 -- assert(sort(N/dim) == {1, 2, 2, 2, 3})
@@ -882,6 +949,8 @@ TEST ///
 -- loadPackage "TotalImage"
 n = 4; PPn = QQ[p_0..p_n]; I = minors(2,matrix{{p_0..p_(n-1)},{p_1..p_n}}); L = first entries gens I; X = ideal (p_0*p_3-p_1*p_2);
 time (N,E)=totalImage(L,X)
+assert(not isClosed(L))
+assert(not isClosed(L,X))
 assert(sort(N/dim) =={2, 2, 2, 3, 3, 4})
 
 -- (3) ideal(b_1,b_2*b_3+b_0*b_5)
