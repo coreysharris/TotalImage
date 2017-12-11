@@ -166,32 +166,22 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         (f,r,X) = shrinkX();
         R = ring X;
         baseLocus = r(ideal L);
-        -- if dim baseLocus < 1 then return (imageX,{});
-    if dim baseLocus < 1 then (
-        if opts.pd then (
-            return (imageX,{});
-        ) else (
-            return (imageX,sub(ideal(1),ring imageX));
-        );
-    );
     ) else (
         hyperIncl := hyperplaneSection(X,fiberDim);
         baseLocus = hyperIncl(ideal L);
-        -- if dim baseLocus < 1 then return (imageX,{});
-    if dim baseLocus < 1 then (
-        if opts.pd then (
-            return (imageX,{});
-        ) else (
-            return (imageX,sub(ideal(1),ring imageX));
-        );
-    );
         -- now we move to the linear subspace
         X = hyperIncl(X);
         if opts.Verbose then << "moved to linear subspace" << endl;
         R = ring X;
         f = map(R,targetPPm,L / (i -> hyperIncl(i)));
     );
-    -- if opts.Verbose then << "computing preimage of X" << endl;
+    if dim (X+baseLocus) < 1 then (
+        if opts.pd then (
+            return (imageX,{});
+        ) else (
+            return (imageX,sub(ideal(1),ring imageX));
+        );
+    );
     if opts.Verbose then << "getting ready to compute blowup" << endl;
     Bl := blowup(baseLocus); -- blowup of PPk (hyperplane);
     BlRing := quotient Bl;
