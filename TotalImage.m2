@@ -66,7 +66,6 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         );
     );
     dimageX := dim imageX;
-    if opts.Verbose then << "(image has dim " << dim variety imageX << ")" <<  endl;
     fiberDim := dim X - dimageX;
     shrinkX := () -> (
         binomialMap := () -> (
@@ -117,7 +116,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         (fRestricted,r,restrictedX,restrictedImage) := monomialMap();
         for i from 1 to TRIES do (
             if dim(restrictedX)==dimageX and isSubset(restrictedImage,imageX) then (
-                if opts.Verbose == true then print("#" | toString i | ": Found a good monomial one!");
+                if opts.Verbose == true then print("#" | toString i | ": Found a good monomial cross section!");
                 return (fRestricted,r,restrictedX)
             );
             (fRestricted,r,restrictedX,restrictedImage) = monomialMap();
@@ -127,7 +126,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         (fRestricted,r,restrictedX,restrictedImage) = binomialMap();
         for i from 1 to TRIES do (
             if dim(restrictedX)==dimageX and isSubset(restrictedImage,imageX) then (
-                if opts.Verbose == true then print("#" | toString i | ": Found a good binomial one!");
+                if opts.Verbose == true then print("#" | toString i | ": Found a good binomial cross section!");
                 return (fRestricted,r,restrictedX)
             );
             (fRestricted,r,restrictedX,restrictedImage) = binomialMap();
@@ -137,7 +136,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         (fRestricted,r,restrictedX,restrictedImage) = advBinomialMap();
         for i from 1 to TRIES do (
             if dim(restrictedX)==dimageX and isSubset(restrictedImage,imageX) then (
-                if opts.Verbose == true then print("#" | toString i | ": Found a good advBinomial one!");
+                if opts.Verbose == true then print("#" | toString i | ": Found a good advBinomial cross section!");
                 return (fRestricted,r,restrictedX)
             );
             (fRestricted,r,restrictedX,restrictedImage) = advBinomialMap();
@@ -150,7 +149,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         restrictedImage = preimage_fRestricted(restrictedX);
         for i from 1 to TRIES do (
             if dim(restrictedX)==dimageX and isSubset(restrictedImage,imageX) then (
-                if opts.Verbose == true then print("#" | toString i | ": Found a good random one!");
+                if opts.Verbose == true then print("#" | toString i | ": Found a good random cross section!");
                 return (fRestricted,r,restrictedX)
             );
             r = hyperplaneSection(X,fiberDim);
@@ -289,6 +288,7 @@ treeBuilder (List,Ideal) := opts -> (L,X) -> (
 
     (zariskiImage,exceptionalLoci)=partialImage(L,D#0,T,opts);
 
+    if opts.Verbose then print("we are computing the components of the pullbacks");
     exceptionalDomi = apply(exceptionalLoci,E -> componentsOfPullback(L,X,E));
 
     -- index the exceptional domains
@@ -341,13 +341,42 @@ outputTree = (N,E) -> (
     printChildren(0,C#0,0);
 )
 
+--not exported
+outputAffineTree = (N,E,dims) -> (
+  lvl := 0;   
+  (C,P) := childrenAndParents(N,E);
+  << endl;
+
+  printChildren := (node,childList,lvl) -> (
+      indentation := "(" | toString(dims#node) | ") ";
+      -- indentation := "";
+      if lvl > 0 then (
+          if lvl % 2 == 0 then (
+              -- indentation = indentation | ((lvl-1)* "|    ") | "|==(+)=="
+              indentation = " + "|indentation | ((lvl-1)* "|    ") | "|===="
+          ) else (
+              -- indentation = indentation | ((lvl-1)* "|    ") | "|==(-)=="
+              indentation = " - "|indentation | ((lvl-1)* "|    ") | "|===="
+          );
+      ) else (
+          indentation = "   "|indentation;
+      );
+      print(indentation|toString N#node);
+      for c in childList do printChildren(c,C#c,lvl+1);
+);
+
+printChildren(0,C#0,0);
+)
+
 --EXPORTED
 totalImage = method(Options => {Verbose => false, Clean => true, Verify => true, Affine => false,Tries => 10})
 totalImage List := opts -> L -> (
     totalImage(L,sub(ideal 0,ring L#0),opts)
 )
 totalImage (List,Ideal) := opts -> (L,X) -> (
+    affine:=false;
     if opts.Affine or not all(L , isHomogeneous) or not all(L, f -> degree(first L)==degree f) then (
+        affine=true;
         ourR := (coefficientRing ring X)(monoid[{getSymbol("zhom")}| for v in gens ring X list getSymbol toString v]);
         maxDegree := max(for f in L list first degree f);
         L = {ourR_0^(maxDegree+1)} | for f in L list homogenizeD(sub(f,ourR),ourR_0,maxDegree+1);
@@ -357,8 +386,12 @@ totalImage (List,Ideal) := opts -> (L,X) -> (
     if opts.Clean then (
         tree=reindexTree(removeDuplicates(tree));
         tree=reindexTree(cleanTree(tree));
+        if affine then (
+          dims:= (tree#0)/(i -> (dim(variety(i)))); 
+          tree = affinePrune(tree);
+        );
     );
-    outputTree(tree);
+    if affine then outputAffineTree(append(tree,dims)) else outputTree(tree);
     return tree;
 )
 
@@ -497,6 +530,27 @@ getLeaves = (N,E) -> (
       if C#i == {} and P#i != {} then i else continue
    );
 )
+
+-- if affine option is given use this
+-- for each node check if it is contained in b_0
+-- if so, remove the edge connecting that node to its parent
+-- after removing all these edges call subtree
+
+affinePrune = (N,E) -> (
+  R := ring N#0;
+  b0 := R_0; -- homogenizing variable
+  hyperplaneAtInfinity := ideal(b0);
+  nodes:=toList(0..(#N-1));
+  badNodes:=select(nodes,i->(isSubset(hyperplaneAtInfinity,N#i)));
+  newEdges:=select(E,e->(not member(e#1,badNodes))); -- subtree will take care of the rest
+
+
+  affineRing := (coefficientRing R)(monoid[drop(gens R,1)]);
+  restrict:=map(affineRing,R,({1}|gens affineRing));
+  newNodes:=(N/(i->trim(restrict(i))));
+  return subTree(newNodes,newEdges,0);
+)
+
 
 pruneLeaves = (N,E) -> (
     leaves := getLeaves(N,E);
