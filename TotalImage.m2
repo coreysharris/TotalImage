@@ -974,8 +974,8 @@ assert(sort(N/dim) =={2, 2, 2, 3, 3, 4})
 TEST ///
 -- restart
 -- loadPackage "TotalImage"
-n = 5; PPn = QQ[p_0..p_n]; I = minors(2,matrix{{p_0..p_(n-1)},{p_1..p_n}}); L = first entries gens I; X = ideal (p_0*p_3-p_1*p_2);
-time (N,E)=totalImage(L,X);
+n = 4; PPn = QQ[p_0..p_n]; I = minors(2,matrix{{p_0..p_(n-1)},{p_1..p_n}}); L = first entries gens I; X = ideal (p_0*p_3-p_1*p_2);
+time (N,E)=totalImage(L,X,Verbose=>true);
 -- time (N,E)=totalImage(L,X,Verbose=>true);
 -- time (N,E)=totalImage(L,X,SmarterHyperplanes=>false,Verbose=>true);
 assert(sort(N/dim) =={2, 2, 2, 4, 4, 5})
@@ -1083,3 +1083,16 @@ end
 restart
 loadPackage "TotalImage"
 check "TotalImage"
+
+n = 4; PPn = QQ[p_0..p_n]; I = minors(2,matrix{{p_0..p_(n-1)},{p_1..p_n}}); L = first entries gens I; X = ideal (p_0*p_3-p_1*p_2);
+f = map(PPn,QQ[b_0..b_5],L)
+-- Y = f(ideal(b_2,b_1,b_4^2-b_3*b_5))
+time (N,E)=totalImage(L,X,Verbose=>true);
+
+
+restart
+loadPackage "TotalImage"
+PP3 = QQ[x,y,z,t]
+M = matrix{{x,y,z},{y,z,t}}
+l = flatten entries gens minors(2,M)
+f1 = random(1,PP3)*(l#0) + random(1,PP3)*(l#1) + random(1,PP3)*(l#2)
