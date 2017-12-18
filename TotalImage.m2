@@ -66,7 +66,6 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         );
     );
     dimageX := dim imageX;
-    if opts.Verbose then << "(image has dim " << dim variety imageX << ")" <<  endl;
     fiberDim := dim X - dimageX;
     shrinkX := () -> (
         binomialMap := () -> (
@@ -117,7 +116,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         (fRestricted,r,restrictedX,restrictedImage) := monomialMap();
         for i from 1 to TRIES do (
             if dim(restrictedX)==dimageX and isSubset(restrictedImage,imageX) then (
-                if opts.Verbose == true then print("#" | toString i | ": Found a good monomial one!");
+                if opts.Verbose == true then print("#" | toString i | ": Found a good monomial cross section!");
                 return (fRestricted,r,restrictedX)
             );
             (fRestricted,r,restrictedX,restrictedImage) = monomialMap();
@@ -127,7 +126,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         (fRestricted,r,restrictedX,restrictedImage) = binomialMap();
         for i from 1 to TRIES do (
             if dim(restrictedX)==dimageX and isSubset(restrictedImage,imageX) then (
-                if opts.Verbose == true then print("#" | toString i | ": Found a good binomial one!");
+                if opts.Verbose == true then print("#" | toString i | ": Found a good binomial cross section!");
                 return (fRestricted,r,restrictedX)
             );
             (fRestricted,r,restrictedX,restrictedImage) = binomialMap();
@@ -137,7 +136,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         (fRestricted,r,restrictedX,restrictedImage) = advBinomialMap();
         for i from 1 to TRIES do (
             if dim(restrictedX)==dimageX and isSubset(restrictedImage,imageX) then (
-                if opts.Verbose == true then print("#" | toString i | ": Found a good advBinomial one!");
+                if opts.Verbose == true then print("#" | toString i | ": Found a good advBinomial cross section!");
                 return (fRestricted,r,restrictedX)
             );
             (fRestricted,r,restrictedX,restrictedImage) = advBinomialMap();
@@ -150,7 +149,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         restrictedImage = preimage_fRestricted(restrictedX);
         for i from 1 to TRIES do (
             if dim(restrictedX)==dimageX and isSubset(restrictedImage,imageX) then (
-                if opts.Verbose == true then print("#" | toString i | ": Found a good random one!");
+                if opts.Verbose == true then print("#" | toString i | ": Found a good random cross section!");
                 return (fRestricted,r,restrictedX)
             );
             r = hyperplaneSection(X,fiberDim);
@@ -289,6 +288,7 @@ treeBuilder (List,Ideal) := opts -> (L,X) -> (
 
     (zariskiImage,exceptionalLoci)=partialImage(L,D#0,T,opts);
 
+    if opts.Verbose then print("we are computing the components of the pullbacks");
     exceptionalDomi = apply(exceptionalLoci,E -> componentsOfPullback(L,X,E));
 
     -- index the exceptional domains
