@@ -348,7 +348,7 @@ outputAffineTree = (N,E,dims) -> (
   << endl;
 
   printChildren := (node,childList,lvl) -> (
-      indentation := "(" | toString(dims#node) | ") ";
+      indentation := "(" | toString(dim (N#node)) | ") ";
       -- indentation := "";
       if lvl > 0 then (
           if lvl % 2 == 0 then (
@@ -387,7 +387,7 @@ totalImage (List,Ideal) := opts -> (L,X) -> (
         tree=reindexTree(removeDuplicates(tree));
         tree=reindexTree(cleanTree(tree));
         if affine then (
-          dims:= (tree#0)/(i -> (dim(variety(i)))); 
+          --dims:= (tree#0)/(i -> (dim(variety(i)))); 
           tree = affinePrune(tree);
         );
     );
@@ -634,7 +634,7 @@ generateTarget = (L,X) -> (
     R := ring X;
     m := #L - 1;
     C := coefficientRing R;
-    return C(monoid[(0..m) / (i -> (getSymbol "b")_i)])
+    return C(monoid[(0..m) / (i -> (getSymbol "y")_i)])
 )
 
 hyperplaneSection = (X,n) -> (
@@ -662,7 +662,7 @@ blowup Ideal := opts -> I -> (
     n := numgens S;
     K := coefficientRing S;
     if opts.Verbose then << 1 << endl;
-    tR := K(monoid[getSymbol"t", gens S, (0..r-1) / ( i -> (getSymbol "b")_i ), MonomialOrder => Eliminate 1]);
+    tR := K(monoid[getSymbol"t", gens S, (0..r-1) / ( i -> (getSymbol "y")_i ), MonomialOrder => Eliminate 1]);
     if opts.Verbose then << 2 << endl;
     f := map(tR, S, submatrix(vars tR, {1..n}));
     if opts.Verbose then << 3 << endl;
@@ -1028,8 +1028,8 @@ assert(sort(N/dim) =={2, 2, 2, 3, 3, 4})
 TEST ///
 -- restart
 -- loadPackage "TotalImage"
-n = 4; PPn = QQ[p_0..p_n]; I = minors(2,matrix{{p_0..p_(n-1)},{p_1..p_n}}); L = first entries gens I; X = ideal (p_0*p_3-p_1*p_2);
-time (N,E)=totalImage(L,X,Verbose=>true);
+n = 5; PPn = QQ[p_0..p_n]; I = minors(2,matrix{{p_0..p_(n-1)},{p_1..p_n}}); L = first entries gens I; X = ideal (p_0*p_3-p_1*p_2);
+time (N,E)=totalImage(L,X);
 -- time (N,E)=totalImage(L,X,Verbose=>true);
 -- time (N,E)=totalImage(L,X,SmarterHyperplanes=>false,Verbose=>true);
 assert(sort(N/dim) =={2, 2, 2, 4, 4, 5})
