@@ -342,7 +342,7 @@ outputTree = (N,E) -> (
 )
 
 --not exported
-outputAffineTree = (N,E,dims) -> (
+outputAffineTree = (N,E) -> (
   lvl := 0;   
   (C,P) := childrenAndParents(N,E);
   << endl;
@@ -387,11 +387,10 @@ totalImage (List,Ideal) := opts -> (L,X) -> (
         tree=reindexTree(removeDuplicates(tree));
         tree=reindexTree(cleanTree(tree));
         if affine then (
-          --dims:= (tree#0)/(i -> (dim(variety(i)))); 
           tree = affinePrune(tree);
         );
     );
-    if affine then outputAffineTree(append(tree,dims)) else outputTree(tree);
+    if affine then outputAffineTree(tree) else outputTree(tree);
     return tree;
 )
 
