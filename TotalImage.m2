@@ -68,121 +68,75 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
     dimageX := dim imageX;
     fiberDim := dim X - dimageX;
     shrinkX := () -> (
-        advBinomialHyperplane := (XX,f,r,i,j,a) -> (
-            R:= ring XX;
-            N := numgens R;
-            keepVars := take(gens R, i) | drop(gens R, i+1);
-            R' := (coefficientRing R)(monoid[keepVars]);
-            restrict := map(R',R,take(gens R',i)|{a*(R'_(j-1))}|drop(gens R',i));
-            restrictedX := restrict(XX);
-            fRestricted :=  restrict * f; 
-            -- fRestricted := map(R',targetPPm, L / (i -> restrict(i)));
-            restrictedImage := preimage_fRestricted(restrictedX);
-            return (fRestricted,restrict*r,restrictedX,restrictedImage)
-        );
-        binomialHyperplane := (XX,f,r,i,j) -> (
-            R:= ring XX;
-            N := numgens R;
-            keepVars := take(gens R, i) | drop(gens R, i+1);
-            R' := (coefficientRing R)(monoid[keepVars]);
-            maplist := take(gens R',i)|{R'_(j-1)}|drop(gens R',i);
-            -- print(maplist);
-            restrict := map(R',R,maplist);
-            restrictedX := restrict(XX);
-            fRestricted :=  restrict * f; 
-            -- fRestricted := map(R',targetPPm, L / (i -> restrict(i)));
-            restrictedImage := preimage_fRestricted(restrictedX);
-            return (fRestricted,restrict*r,restrictedX,restrictedImage)
-        );
-        monomialHyperplane := (XX,f,r,i) -> (
-            -- R:= ring XX;
+
+        hyperplane := (XX,f,r,l) -> (
             R := target r;
-            N := numgens R;
+            (i,j,a):=(l#0,0,0);
             keepVars := take(gens R, i) | drop(gens R, i+1);
-            -- print("keepvars: "|toString keepVars);
             R' := (coefficientRing R)(monoid[keepVars]);
-            maplist :=take(gens R',i)|{sub(0,R')}|drop(gens R',i);
-            -- print("maplist: "|toString maplist);
+            --
+            if #l == 1 then (
+                -- monomial
+                (i) = l;
+                maplist :=take(gens R',i)|{sub(0,R')}|drop(gens R',i);
+            ) else (
+                -- binomial with coefficients
+                (i,j,a)=l;
+                maplist = take(gens R',i)|{a*(R'_(j-1))}|drop(gens R',i);
+            );
+            --
             restrict := map(R',R,maplist);
-            -- print("restrict: "|toString restrict);
             restrictedX := restrict(XX);
             fRestricted :=  restrict * f; 
-            -- fRestricted := map(R',targetPPm, L / (i -> restrict(i)));
             restrictedImage := preimage_fRestricted(restrictedX);
-            -- print("restrict*r: "|toString(restrict*r));
             return (fRestricted,restrict*r,restrictedX,restrictedImage)
         );
 
         r := map(R,R,gens R);
-        -- print(toString r);
         newr := "candidate for new r";
         restrictedX := "restrictedX";
         restrictedImage := "restrictedImage";
         fRestricted:= "fRestricted";
+
         i := 0;
-        j := 1;
         while (i < length(gens ring X)) do (
-            -- print(i);
             if dim X > dimageX then (
-                (fRestricted,newr,restrictedX,restrictedImage) = monomialHyperplane(X,f,r,i);
+                (fRestricted,newr,restrictedX,restrictedImage) = hyperplane(X,f,r,toSequence({i}));
                 if dim(restrictedX)==dim(X)-1 and isSubset(restrictedImage,imageX) then (
-                    if opts.Verbose == true then print("#" | toString i | ": Found a good monomial cross section!");
+                    if opts.Verbose then print("#" | toString i | ": Found a good monomial cross section!");
                     (f,r,X) = (fRestricted,newr,restrictedX);
                 ) else (i = i + 1);
-            -- ) else if ( dim X == dimageX ) then (i = length(gens ring X));
             ) else if ( dim X == dimageX ) then (return (f,r,X));
         );
+
         i = 0;
-        j = 1;
-        while (i < length(gens ring X)-1) do (
-            while (j < length(gens ring X)) do (
-                -- print("bin: " | toString(i) | ": " | toString((ring X)_i) | " and " | toString(j) | ": "|toString((ring X)_j));
-                if dim X > dimageX then (
-                    (fRestricted,newr,restrictedX,restrictedImage) = binomialHyperplane(X,f,r,i,j);
-                    if dim(restrictedX)==dim(X)-1 and isSubset(restrictedImage,imageX) then (
-                        if opts.Verbose == true then print("#" | toString i | ": Found a good binomial cross section!");
-                        (f,r,X) = (fRestricted,newr,restrictedX);
-                        j = i + 1;
-                    ) else (j = j + 1);
-                -- ) else if ( dim X == dimageX ) then (i = length(gens ring X); j= length(gens ring X));
-                ) else if ( dim X == dimageX ) then (return (f,r,X));
-                
-            );
-            i = i + 1;
-            j = i + 1;
-        );
-        i = 0;
-        j = 1;
-        while (i < length(gens ring X)-1) do (
-            while (j < length(gens ring X)) do (
-                for a in { -1,2,-2,-3,3,5,7} do (
+        j := 1;
+        for a in {1,-1,2,-2,-3,3,5,7} do (
+            while (i < length(gens ring X)-1) do (
+                while (j < length(gens ring X)) do (
                     if dim X > dimageX then (
-                        (fRestricted,newr,restrictedX,restrictedImage) = advBinomialHyperplane(X,f,r,i,j,a);
+                        (fRestricted,newr,restrictedX,restrictedImage) = hyperplane(X,f,r,(i,j,a));
                         if dim(restrictedX)==dim(X)-1 and isSubset(restrictedImage,imageX) then (
-                            if opts.Verbose == true then print("#" | toString i | ": Found a good advBinomial cross section!");
+                            if opts.Verbose then print("#" | toString i | ": Found a good binomial cross section! (a=" | a |")");
                             (f,r,X) = (fRestricted,newr,restrictedX);
                             j = i + 1;
-                            break 2;
+                            -- break 2;
                         ) else (j = j + 1);
-                    -- ) else if ( dim X == dimageX ) then (i = length(gens ring X); j= length(gens ring X));
                     ) else if ( dim X == dimageX ) then (return (f,r,X));
                 );
+                i = i + 1;
+                j = i + 1;
             );
-            i = i + 1;
-            j = i + 1;
         );
         
-
-
         TRIES := opts.Tries;
-        -- give up and look for random hyperplanes
         r = hyperplaneSection(X,dim X - dimageX);
         restrictedX = r(X);
         fRestricted =  map(ring restrictedX, targetPPm, L / (i -> r(i)));
         restrictedImage = preimage_fRestricted(restrictedX);
         for i from 1 to TRIES do (
             if dim(restrictedX)==dimageX and isSubset(restrictedImage,imageX) then (
-                if opts.Verbose == true then print("#" | toString i | ": Found a good random cross section!");
+                if opts.Verbose then print("#" | toString i | ": Found a good random cross section!");
                 return (fRestricted,r,restrictedX)
             );
             r = hyperplaneSection(X,dim X - dimageX);
@@ -197,7 +151,6 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         r := "restriction map";
         (f,r,X) = shrinkX();
         R = ring X;
-        -- print(toString r);
         baseLocus = r(ideal L);
     ) else (
         hyperIncl := hyperplaneSection(X,fiberDim);
