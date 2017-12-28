@@ -35,7 +35,7 @@ ReverseDictionary = value Core#"private dictionary"#"ReverseDictionary"
 -------------------------------------------
 
 --EXPORTED
-partialImage = method(Options => {Verbose => false, Verify => true, pd => true, Tries => 5})
+partialImage = method(Options => {Verbose => false, Verify => true, pd => true, Tries => 50})
 partialImage List := opts -> (L) -> (
     partialImage(L,sub(ideal 0,ring L#0),opts)
  )
@@ -68,82 +68,115 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
     dimageX := dim imageX;
     fiberDim := dim X - dimageX;
     shrinkX := () -> (
-        binomialMap := () -> (
-           N := numgens R;
-           n := N - fiberDim;
-           firstVars := take(gens R,n);
-           l := flatten for i from 1 to (N//n+1) list (
-               for v in firstVars list (v)
-               );
-           rndVarList := random(take(l,N));
-           R' := (coefficientRing R)(monoid[firstVars]);
-           restrict := map(R',R,rndVarList / (i -> sub(i,R')));
-           restrictedX := restrict(X);
-           fRestricted := map(R',targetPPm, L / (i -> restrict(i)));
-           restrictedImage := preimage_fRestricted(restrictedX);
-           return (fRestricted,restrict,restrictedX,restrictedImage)
+        advBinomialHyperplane := (XX,f,r,i,j,a) -> (
+            R:= ring XX;
+            N := numgens R;
+            keepVars := take(gens R, i) | drop(gens R, i+1);
+            R' := (coefficientRing R)(monoid[keepVars]);
+            restrict := map(R',R,take(gens R',i)|{a*(R'_(j-1))}|drop(gens R',i));
+            restrictedX := restrict(XX);
+            fRestricted :=  restrict * f; 
+            -- fRestricted := map(R',targetPPm, L / (i -> restrict(i)));
+            restrictedImage := preimage_fRestricted(restrictedX);
+            return (fRestricted,restrict*r,restrictedX,restrictedImage)
         );
-        advBinomialMap := () -> (
-           N := numgens R;
-           n := N - fiberDim;
-           firstVars := take(gens R,n);
-           l := flatten for i from 1 to (N//n+1) list (
-               for v in firstVars list (rand(5)*v)
-               );
-           rndVarList := random(take(l,N));
-           R' := (coefficientRing R)(monoid[firstVars]);
-           restrict := map(R',R,rndVarList / (i -> sub(i,R')));
-           restrictedX := restrict(X);
-           fRestricted := map(R',targetPPm, L / (i -> restrict(i)));
-           restrictedImage := preimage_fRestricted(restrictedX);
-           return (fRestricted,restrict,restrictedX,restrictedImage)
+        binomialHyperplane := (XX,f,r,i,j) -> (
+            R:= ring XX;
+            N := numgens R;
+            keepVars := take(gens R, i) | drop(gens R, i+1);
+            R' := (coefficientRing R)(monoid[keepVars]);
+            maplist := take(gens R',i)|{R'_(j-1)}|drop(gens R',i);
+            -- print(maplist);
+            restrict := map(R',R,maplist);
+            restrictedX := restrict(XX);
+            fRestricted :=  restrict * f; 
+            -- fRestricted := map(R',targetPPm, L / (i -> restrict(i)));
+            restrictedImage := preimage_fRestricted(restrictedX);
+            return (fRestricted,restrict*r,restrictedX,restrictedImage)
         );
-        monomialMap := () -> (
-           N := numgens R;
-           n := N - fiberDim;
-           keepVars := take(random(gens R),n);
-           rndVarList := random (keepVars | for i from 1 to fiberDim list 0);
-           R' := (coefficientRing R)(monoid[keepVars]);
-           restrict := map(R',R,rndVarList / (i -> sub(i,R')));
-           restrictedX := restrict(X);
-           fRestricted := map(R',targetPPm, L / (i -> restrict(i)));
-           restrictedImage := preimage_fRestricted(restrictedX);
-           return (fRestricted,restrict,restrictedX,restrictedImage)
+        monomialHyperplane := (XX,f,r,i) -> (
+            -- R:= ring XX;
+            R := target r;
+            N := numgens R;
+            keepVars := take(gens R, i) | drop(gens R, i+1);
+            -- print("keepvars: "|toString keepVars);
+            R' := (coefficientRing R)(monoid[keepVars]);
+            maplist :=take(gens R',i)|{sub(0,R')}|drop(gens R',i);
+            -- print("maplist: "|toString maplist);
+            restrict := map(R',R,maplist);
+            -- print("restrict: "|toString restrict);
+            restrictedX := restrict(XX);
+            fRestricted :=  restrict * f; 
+            -- fRestricted := map(R',targetPPm, L / (i -> restrict(i)));
+            restrictedImage := preimage_fRestricted(restrictedX);
+            -- print("restrict*r: "|toString(restrict*r));
+            return (fRestricted,restrict*r,restrictedX,restrictedImage)
         );
+
+        r := map(R,R,gens R);
+        -- print(toString r);
+        newr := "candidate for new r";
+        restrictedX := "restrictedX";
+        restrictedImage := "restrictedImage";
+        fRestricted:= "fRestricted";
+        i := 0;
+        j := 1;
+        while (i < length(gens ring X)) do (
+            -- print(i);
+            if dim X > dimageX then (
+                (fRestricted,newr,restrictedX,restrictedImage) = monomialHyperplane(X,f,r,i);
+                if dim(restrictedX)==dim(X)-1 and isSubset(restrictedImage,imageX) then (
+                    if opts.Verbose == true then print("#" | toString i | ": Found a good monomial cross section!");
+                    (f,r,X) = (fRestricted,newr,restrictedX);
+                ) else (i = i + 1);
+            -- ) else if ( dim X == dimageX ) then (i = length(gens ring X));
+            ) else if ( dim X == dimageX ) then (return (f,r,X));
+        );
+        i = 0;
+        j = 1;
+        while (i < length(gens ring X)-1) do (
+            while (j < length(gens ring X)) do (
+                -- print("bin: " | toString(i) | ": " | toString((ring X)_i) | " and " | toString(j) | ": "|toString((ring X)_j));
+                if dim X > dimageX then (
+                    (fRestricted,newr,restrictedX,restrictedImage) = binomialHyperplane(X,f,r,i,j);
+                    if dim(restrictedX)==dim(X)-1 and isSubset(restrictedImage,imageX) then (
+                        if opts.Verbose == true then print("#" | toString i | ": Found a good binomial cross section!");
+                        (f,r,X) = (fRestricted,newr,restrictedX);
+                        j = i + 1;
+                    ) else (j = j + 1);
+                -- ) else if ( dim X == dimageX ) then (i = length(gens ring X); j= length(gens ring X));
+                ) else if ( dim X == dimageX ) then (return (f,r,X));
+                
+            );
+            i = i + 1;
+            j = i + 1;
+        );
+        i = 0;
+        j = 1;
+        while (i < length(gens ring X)-1) do (
+            while (j < length(gens ring X)) do (
+                for a in { -1,2,-2,-3,3,5,7} do (
+                    if dim X > dimageX then (
+                        (fRestricted,newr,restrictedX,restrictedImage) = advBinomialHyperplane(X,f,r,i,j,a);
+                        if dim(restrictedX)==dim(X)-1 and isSubset(restrictedImage,imageX) then (
+                            if opts.Verbose == true then print("#" | toString i | ": Found a good advBinomial cross section!");
+                            (f,r,X) = (fRestricted,newr,restrictedX);
+                            j = i + 1;
+                            break 2;
+                        ) else (j = j + 1);
+                    -- ) else if ( dim X == dimageX ) then (i = length(gens ring X); j= length(gens ring X));
+                    ) else if ( dim X == dimageX ) then (return (f,r,X));
+                );
+            );
+            i = i + 1;
+            j = i + 1;
+        );
+        
+
 
         TRIES := opts.Tries;
-        -- look for very simple linear spaces
-        (fRestricted,r,restrictedX,restrictedImage) := monomialMap();
-        for i from 1 to TRIES do (
-            if dim(restrictedX)==dimageX and isSubset(restrictedImage,imageX) then (
-                if opts.Verbose == true then print("#" | toString i | ": Found a good monomial cross section!");
-                return (fRestricted,r,restrictedX)
-            );
-            (fRestricted,r,restrictedX,restrictedImage) = monomialMap();
-        );
-
-        -- slightly more complicated
-        (fRestricted,r,restrictedX,restrictedImage) = binomialMap();
-        for i from 1 to TRIES do (
-            if dim(restrictedX)==dimageX and isSubset(restrictedImage,imageX) then (
-                if opts.Verbose == true then print("#" | toString i | ": Found a good binomial cross section!");
-                return (fRestricted,r,restrictedX)
-            );
-            (fRestricted,r,restrictedX,restrictedImage) = binomialMap();
-        );
-
-        -- add nontrivial coefficients
-        (fRestricted,r,restrictedX,restrictedImage) = advBinomialMap();
-        for i from 1 to TRIES do (
-            if dim(restrictedX)==dimageX and isSubset(restrictedImage,imageX) then (
-                if opts.Verbose == true then print("#" | toString i | ": Found a good advBinomial cross section!");
-                return (fRestricted,r,restrictedX)
-            );
-            (fRestricted,r,restrictedX,restrictedImage) = advBinomialMap();
-        );
-
         -- give up and look for random hyperplanes
-        r = hyperplaneSection(X,fiberDim);
+        r = hyperplaneSection(X,dim X - dimageX);
         restrictedX = r(X);
         fRestricted =  map(ring restrictedX, targetPPm, L / (i -> r(i)));
         restrictedImage = preimage_fRestricted(restrictedX);
@@ -152,7 +185,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
                 if opts.Verbose == true then print("#" | toString i | ": Found a good random cross section!");
                 return (fRestricted,r,restrictedX)
             );
-            r = hyperplaneSection(X,fiberDim);
+            r = hyperplaneSection(X,dim X - dimageX);
             restrictedX = r(X);
             fRestricted =  map(ring restrictedX, targetPPm, L / (i -> r(i)));
             restrictedImage = preimage_fRestricted(restrictedX);
@@ -164,6 +197,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
         r := "restriction map";
         (f,r,X) = shrinkX();
         R = ring X;
+        -- print(toString r);
         baseLocus = r(ideal L);
     ) else (
         hyperIncl := hyperplaneSection(X,fiberDim);
@@ -226,7 +260,7 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
     );
 )
 
-isClosed = method(Options => {Verbose => false,Tries=>10})
+isClosed = method(Options => {Verbose => false,Tries=>50})
 isClosed List := opts -> L -> (
     isClosed(L,sub(ideal 0,ring L#0),opts)
 )
@@ -251,7 +285,7 @@ isClosed(List,Ideal) := opts -> (L,X) -> (
     return true
 )
 
-treeBuilder = method(Options => {Verbose => false,Verify=>false,Tries=>10})
+treeBuilder = method(Options => {Verbose => false,Verify=>false,Tries=>50})
 treeBuilder List := opts -> L -> (
     treeBuilder(L,sub(ideal 0,ring L#0),opts)
 )
@@ -369,7 +403,7 @@ printChildren(0,C#0,0);
 )
 
 --EXPORTED
-totalImage = method(Options => {Verbose => false, Clean => true, Verify => true, Affine => false,Tries => 10})
+totalImage = method(Options => {Verbose => false, Clean => true, Verify => true, Affine => false,Tries => 50})
 totalImage List := opts -> L -> (
     totalImage(L,sub(ideal 0,ring L#0),opts)
 )
@@ -384,6 +418,7 @@ totalImage (List,Ideal) := opts -> (L,X) -> (
     );
     tree:=treeBuilder(L,X,Verbose=>opts.Verbose,Verify=>opts.Verify,Tries=>opts.Tries);
     if opts.Clean then (
+        if opts.Verbose then (print("Cleaning tree..."));
         tree=reindexTree(removeDuplicates(tree));
         tree=reindexTree(cleanTree(tree));
         if affine then (
@@ -1136,3 +1171,4 @@ end
 restart
 loadPackage "TotalImage"
 check "TotalImage"
+
