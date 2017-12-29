@@ -109,20 +109,22 @@ partialImage (List,Ideal,Ring) := opts -> (L,X,T) -> (
             ) else if ( dim X == dimageX ) then (return (f,r,X));
         );
 
-        i = 0;
         j := 1;
         for a in {1,-1,2,-2,-3,3,5,7} do (
-            while (i < length(gens ring X)-1) do (
-                while (j < length(gens ring X)) do (
+            i = 0;
+            j = 1;
+            while (i < #(gens ring X)-1) do (
+                while (j < #(gens ring X)) do (
                     if dim X > dimageX then (
                         (fRestricted,newr,restrictedX,restrictedImage) = hyperplane(X,f,r,(i,j,a));
                         if dim(restrictedX)==dim(X)-1 and isSubset(restrictedImage,imageX) then (
                             if opts.Verbose then print("#" | toString i | ": Found a good binomial cross section! (a=" | a |")");
                             (f,r,X) = (fRestricted,newr,restrictedX);
                             j = i + 1;
-                            -- break 2;
                         ) else (j = j + 1);
-                    ) else if ( dim X == dimageX ) then (return (f,r,X));
+                    ) else (
+                        return (f,r,X)
+                    );
                 );
                 i = i + 1;
                 j = i + 1;
