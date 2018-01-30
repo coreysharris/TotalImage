@@ -21,7 +21,8 @@ export {
     "Clean",
     "Affine",
     "pd",
-    "Tries"
+    "Tries",
+    "MinimumDim"
 }
 
 hasAttribute = value Core#"private dictionary"#"hasAttribute"
@@ -35,7 +36,7 @@ ReverseDictionary = value Core#"private dictionary"#"ReverseDictionary"
 -------------------------------------------
 
 --EXPORTED
-partialImage = method(Options => {Verbose => false, Verify => true, pd => true, Tries => 50})
+partialImage = method(Options => {Verbose => false, Verify => true, pd => true, Tries => 50, MinimumDim=>"USELESS"})
 partialImage List := opts -> (L) -> (
     partialImage(L,sub(ideal 0,ring L#0),opts)
  )
@@ -240,7 +241,7 @@ isClosed(List,Ideal) := opts -> (L,X) -> (
     return true
 )
 
-treeBuilder = method(Options => {Verbose => false,Verify=>false,Tries=>50})
+treeBuilder = method(Options => {Verbose => false,Verify=>false,Tries=>50,MinimumDim=>0})
 treeBuilder List := opts -> L -> (
     treeBuilder(L,sub(ideal 0,ring L#0),opts)
 )
@@ -276,8 +277,12 @@ treeBuilder (List,Ideal) := opts -> (L,X) -> (
     i =  D#1;
 
     (zariskiImage,exceptionalLoci)=partialImage(L,D#0,T,opts);
-
+    
     if opts.Verbose then print("we are computing the components of the pullbacks");
+    exceptionalLociOfBigDim := for E in exceptionalLoci list (
+        if dim E > opts.MinimumDim then E else continue
+    );
+    exceptionalLoci = exceptionalLociOfBigDim;
     exceptionalDomi = apply(exceptionalLoci,E -> componentsOfPullback(L,X,E));
 
     -- index the exceptional domains
@@ -358,7 +363,7 @@ printChildren(0,C#0,0);
 )
 
 --EXPORTED
-totalImage = method(Options => {Verbose => false, Clean => true, Verify => true, Affine => false,Tries => 50})
+totalImage = method(Options => {Verbose => false, Clean => true, Verify => true, Affine => false,Tries => 50, MinimumDim => 0})
 totalImage List := opts -> L -> (
     totalImage(L,sub(ideal 0,ring L#0),opts)
 )
@@ -371,7 +376,7 @@ totalImage (List,Ideal) := opts -> (L,X) -> (
         L = {ourR_0^(maxDegree+1)} | for f in L list homogenizeD(sub(f,ourR),ourR_0,maxDegree+1);
         X = sub(X,ourR);
     );
-    tree:=treeBuilder(L,X,Verbose=>opts.Verbose,Verify=>opts.Verify,Tries=>opts.Tries);
+    tree:=treeBuilder(L,X,Verbose=>opts.Verbose,Verify=>opts.Verify,Tries=>opts.Tries,MinimumDim=>opts.MinimumDim);
     if opts.Clean then (
         if opts.Verbose then (print("Cleaning tree..."));
         tree=reindexTree(removeDuplicates(tree));
@@ -986,8 +991,10 @@ assert(sort(N/dim) == {1, 1, 1, 1, 1, 1, 2, 2, 2, 3})
 
 TEST ///
 -- blowup a quadric hypersurface in PPn containing the rational normal curve of degree n
--- restart
--- loadPackage "TotalImage"
+{*
+restart
+loadPackage "TotalImage"
+*}
 n = 4; PPn = QQ[p_0..p_n]; I = minors(2,matrix{{p_0..p_(n-1)},{p_1..p_n}}); L = first entries gens I; X = ideal (p_0*p_3-p_1*p_2);
 time (N,E)=totalImage(L,X)
 assert(not isClosed(L))
@@ -1019,6 +1026,7 @@ TEST ///
 -- loadPackage "TotalImage"
 n = 5; PPn = QQ[p_0..p_n]; I = minors(2,matrix{{p_0..p_(n-1)},{p_1..p_n}}); L = first entries gens I; X = ideal (p_0*p_3-p_1*p_2);
 time (N,E)=totalImage(L,X);
+time (N,E)=totalImage(L,X,MinimumDim=>3);
 -- time (N,E)=totalImage(L,X,Verbose=>true);
 -- time (N,E)=totalImage(L,X,SmarterHyperplanes=>false,Verbose=>true);
 assert(sort(N/dim) =={2, 2, 2, 4, 4, 5})
@@ -1076,13 +1084,15 @@ TEST ///
 -- THIS TEST IS SLOWWW
 -- about 200secs CPU time on a 2017 MacBook Pro
 
--- restart
--- loadPackage "TotalImage"
--- PP2 = QQ[x,y,z]
--- L = {x^6*y^2*z+4*x^5*y^3*z+5*x^4*y^4*z+2*x^3*y^5*z+x^6*y*z^2+14*x^5*y^2*z^2+36*x^4*y^3*z^2+27*x^3*y^4*z^2+4*x^2*y^5*z^2+4*x^5*y*z^3+36*x^4*y^2*z^3+56*x^3*y^3*z^3+14*x^2*y^4*z^3+5*x^4*y*z^4+27*x^3*y^2*z^4+14*x^2*y^3*z^4+2*x^3*y*z^5+4*x^2*y^2*z^5, 2*x^5*y^3*z+5*x^4*y^4*z+4*x^3*y^5*z+x^2*y^6*z+4*x^5*y^2*z^2+27*x^4*y^3*z^2+36*x^3*y^4*z^2+14*x^2*y^5*z^2+x*y^6*z^2+14*x^4*y^2*z^3+56*x^3*y^3*z^3+36*x^2*y^4*z^3+4*x*y^5*z^3+14*x^3*y^2*z^4+27*x^2*y^3*z^4+5*x*y^4*z^4+4*x^2*y^2*z^5+2*x*y^3*z^5, 4*x^5*y^2*z^2+14*x^4*y^3*z^2+14*x^3*y^4*z^2+4*x^2*y^5*z^2+2*x^5*y*z^3+27*x^4*y^2*z^3+56*x^3*y^3*z^3+27*x^2*y^4*z^3+2*x*y^5*z^3+5*x^4*y*z^4+36*x^3*y^2*z^4+36*x^2*y^3*z^4+5*x*y^4*z^4+4*x^3*y*z^5+14*x^2*y^2*z^5+4*x*y^3*z^5+x^2*y*z^6+x*y^2*z^6}
--- time (N,E)=totalImage(L,Verbose=>true);
--- -- time (N,E)=totalImage(L,Verbose=>true,SmarterHyperplanes=>false);
--- assert(sort(N/dim) =={2})
+{*
+restart
+loadPackage "TotalImage"
+PP2 = QQ[x,y,z]
+L = {x^6*y^2*z+4*x^5*y^3*z+5*x^4*y^4*z+2*x^3*y^5*z+x^6*y*z^2+14*x^5*y^2*z^2+36*x^4*y^3*z^2+27*x^3*y^4*z^2+4*x^2*y^5*z^2+4*x^5*y*z^3+36*x^4*y^2*z^3+56*x^3*y^3*z^3+14*x^2*y^4*z^3+5*x^4*y*z^4+27*x^3*y^2*z^4+14*x^2*y^3*z^4+2*x^3*y*z^5+4*x^2*y^2*z^5, 2*x^5*y^3*z+5*x^4*y^4*z+4*x^3*y^5*z+x^2*y^6*z+4*x^5*y^2*z^2+27*x^4*y^3*z^2+36*x^3*y^4*z^2+14*x^2*y^5*z^2+x*y^6*z^2+14*x^4*y^2*z^3+56*x^3*y^3*z^3+36*x^2*y^4*z^3+4*x*y^5*z^3+14*x^3*y^2*z^4+27*x^2*y^3*z^4+5*x*y^4*z^4+4*x^2*y^2*z^5+2*x*y^3*z^5, 4*x^5*y^2*z^2+14*x^4*y^3*z^2+14*x^3*y^4*z^2+4*x^2*y^5*z^2+2*x^5*y*z^3+27*x^4*y^2*z^3+56*x^3*y^3*z^3+27*x^2*y^4*z^3+2*x*y^5*z^3+5*x^4*y*z^4+36*x^3*y^2*z^4+36*x^2*y^3*z^4+5*x*y^4*z^4+4*x^3*y*z^5+14*x^2*y^2*z^5+4*x*y^3*z^5+x^2*y*z^6+x*y^2*z^6}
+time (N,E)=totalImage(L,Verbose=>true);
+-- time (N,E)=totalImage(L,Verbose=>true,SmarterHyperplanes=>false);
+assert(sort(N/dim) =={2})
+*}
 ///
 
 TEST ///
@@ -1106,8 +1116,10 @@ assert(sort(N/dim) =={3})
 ///
 
 TEST ///
--- restart
--- loadPackage "TotalImage"
+{*
+restart
+loadPackage "TotalImage"
+*}
 PP2 = QQ[x,y,z]
 L = {y*z*(2*x+y+z),x*z*(x+2*y+z),x*y*(x+y+2*z)}
 -- time for i from 1 to 10 do totalImage(L);
@@ -1126,4 +1138,3 @@ end
 restart
 loadPackage "TotalImage"
 check "TotalImage"
-
