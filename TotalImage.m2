@@ -992,10 +992,10 @@ assert(sort(N/dim) == {1, 1, 1, 1, 1, 1, 2, 2, 2, 3})
 
 TEST ///
 -- blowup a quadric hypersurface in PPn containing the rational normal curve of degree n
-{*
+-*
 restart
 loadPackage "TotalImage"
-*}
+*-
 n = 4; PPn = QQ[p_0..p_n]; I = minors(2,matrix{{p_0..p_(n-1)},{p_1..p_n}}); L = first entries gens I; X = ideal (p_0*p_3-p_1*p_2);
 time (N,E)=totalImage(L,X)
 assert(not isClosed(L))
@@ -1085,7 +1085,7 @@ TEST ///
 -- THIS TEST IS SLOWWW
 -- about 200secs CPU time on a 2017 MacBook Pro
 
-{*
+-*
 restart
 loadPackage "TotalImage"
 PP2 = QQ[x,y,z]
@@ -1093,7 +1093,7 @@ L = {x^6*y^2*z+4*x^5*y^3*z+5*x^4*y^4*z+2*x^3*y^5*z+x^6*y*z^2+14*x^5*y^2*z^2+36*x
 time (N,E)=totalImage(L,Verbose=>true);
 -- time (N,E)=totalImage(L,Verbose=>true,SmarterHyperplanes=>false);
 assert(sort(N/dim) =={2})
-*}
+*-
 ///
 
 TEST ///
@@ -1117,10 +1117,10 @@ assert(sort(N/dim) =={3})
 ///
 
 TEST ///
-{*
+-*
 restart
 loadPackage "TotalImage"
-*}
+*-
 PP2 = QQ[x,y,z]
 L = {y*z*(2*x+y+z),x*z*(x+2*y+z),x*y*(x+y+2*z)}
 -- time for i from 1 to 10 do totalImage(L);
