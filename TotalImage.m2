@@ -8,7 +8,8 @@ newPackage(
         {Name => "Emre Sertoz", Email => "emresertoz@gmail.com", HomePage => "https://emresertoz.com/"}
     },
     Headline => "A package for computing the image of a rational map as a constructible set",
-    AuxiliaryFiles => false
+    AuxiliaryFiles => false,
+    PackageImports => {"Elimination"}
 )
 
 export { 
